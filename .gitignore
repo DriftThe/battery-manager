@@ -4,5 +4,4 @@
 main.spec
 /.venv/
 test.py
-access/icon.png
-access/devices.json
+/.idea/
