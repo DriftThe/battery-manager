@@ -1,17 +1,21 @@
 import hid
 from threading import Thread
 from time import sleep
+from device_list_reader import DeviceListReader
+
 
 class HIDListener:
-    def __init__(self):
-        self.v_id = 0x1D57
-        self.p_id = 0xFA60
-        self.target_interface = 2
+    def __init__(self, vid, pid, target_interface=2):
+        self.v_id = vid
+        self.p_id = pid
+        self.target_interface = target_interface
         self.data = None
-        self.running = True
+        self.device = DeviceListReader('0x' + format(self.v_id, '04X'), '0x' + format(self.p_id, '04X'))
 
     def get_data(self):
-        return self.data
+        if self.data is None:
+            return None
+        return self.data[self.device.get_posBattery()]
 
     def start(self):
         thread = Thread(target=self._listen, daemon=True)
@@ -24,16 +28,19 @@ class HIDListener:
             if path:
                 h.open_path(path)
                 h.set_nonblocking(True)
-                while self.running:
+                while True:
                     data_temp = h.read(64)
                     if data_temp:
                         self.data = data_temp
-                        sleep(5)
+                        sleep(10)
+
+            else:
+                print("cannot reach specific device")
         except IOError as ex:
             print(f"错误: {ex}")
 
     def _initialize(self):
         for device_dict in hid.enumerate(self.v_id, self.p_id):
-            if device_dict['interface_number'] == self.target_interface:
+            if device_dict['interface_number'] == self.target_interface and device_dict["usage_page"] == 10:
                 return device_dict['path']
         return None
