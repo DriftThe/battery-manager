@@ -8,19 +8,32 @@ from device_finder import HIDEmulator
 from common_function import *
 import win32api
 import win32event
+from startup_manager import StartupManager
 
 mutex_name = 'device-battery-reader_app_mutex'
 icon_normal = Image.open(resource_path('access/icon.png'))
 icon_middle = Image.open(resource_path('access/icon-middlebattery.png'))
 icon_low = Image.open(resource_path('access/icon-lowbattery.png'))
-menu = pystray.Menu(
+startup_flag = StartupManager().get_shortcut_flag()
+
+
+def toggle_startup(instance):
+    global startup_flag
+    StartupManager().toggle_launch_when_up_shortcut()
+    startup_flag = StartupManager().get_shortcut_flag()
+    instance.update_menu()  # 刷新菜单以更新勾选状态
+
+
+menuitem = [
+    pystray.MenuItem("开机自启", toggle_startup, checked=lambda item: startup_flag),
     pystray.MenuItem('退出', lambda instance: instance.stop())
-)
+]
+
 icon = pystray.Icon(
     "app",
     icon_normal,
     "Default Title",
-    menu
+    menuitem
 )
 vid_from_json_set = {}
 hid_from_pc_set = {}
@@ -58,7 +71,8 @@ def _app_init():
     main_thread.start()
     # 将支持的vid和pid列表传入监听器，监听器启动监听进程结束
     if supported_devices_vid_pid:
-        notify(f"supported devices found:{supported_devices_string}")
+        # notify(f"supported devices found:{supported_devices_string}")
+        pass
     else:
         notify(f"no supported device found,exiting")
         raise SystemExit("no supported device found")
